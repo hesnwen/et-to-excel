@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+		<meta charset="UTF-8">
+		<title>Document</title>
+		<script src="jquery-1.9.1.min.js" type="text/javascript" charset="utf-8"></script>
+		<script type="text/javascript" src="xlsx.full.min.js"></script>
+		<script>
+		window.onload = function() {
+			$('#upload_excel').change(function(e) {
+				var files = e.target.files;
+				var fileReader = new FileReader();
+				var excle = $("#upload_excel").val();
+				console.log(excle);
+				if(excle == null) {
+					alert("未选择Excel文件");
+				} else {
+					// 判断是否是Excel格式
+					if(excle != '') {
+						//文件名可以带空格
+						var reg = /^.*\.(?:xls|xlsx)$/i;
+						//校验不通过
+						// if(!reg.test(excle)) {
+						// 	alert("请上传excel格式的文件!");
+						// 	return;
+						// } else {
+							fileReader.onload = function(ev) {
+								try {
+									var data = ev.target.result,
+										workbook = XLSX.read(data, {
+											type: 'binary'
+										}), // 以二进制流方式读取得到整份excel表格对象
+										persons = []; // 存储获取到的数据
+								} catch(e) {
+									alert('文件类型不正确');
+									return;
+								}
+
+								// 表格的表格范围，可用于判断表头是否数量是否正确
+								var fromTo = '';
+								// 遍历每张表读取
+								for(var sheet in workbook.Sheets) {
+									if(workbook.Sheets.hasOwnProperty(sheet)) {
+										fromTo = workbook.Sheets[sheet]['!ref'];
+										persons = persons.concat(XLSX.utils.sheet_to_json(workbook.Sheets[sheet]));
+									}
+								}
+								console.log(persons);
+								if(persons.length > 10000) {
+									alert("Excel长度超过10000条，不能使用");
+								} else {
+									_Result = persons;
+									var id = "";
+									if(persons.length == 0) {
+										alert("导入Excel中无数据");
+									} else {
+										// $("#content").html(persons);
+										// content = jQuery.parseJSON(persons);
+										console.log(persons[0]);
+										toExcel('测试',JSON.stringify(persons));
+										//  添加在页面表格中（添加代码就不举例说明了）
+									}
+								}
+							};
+						// }
+					}else{
+						console.log('null');
+					}
+
+				}
+				// 以二进制方式打开文件
+				fileReader.readAsBinaryString(files[0]);
+				// 清空input 值 避免选择同名字的excel 文件不执行
+				$("#upload_excel").val("")
+			});
+		}
+		//FileName 生成的Excel文件名称
+//ShowLabel 生成的Excel文件列标题
+//JSONData 生成的Excel文件内容
+function toExcel(FileName, JSONData) {
+	// 序号	对方单位账号		对方单位名称	借贷	结算方式	凭证号	金额	分户账号	单位名称		
+	ShowLabel = ["序号","对方单位账号","对方单位名称","借贷结算方式","凭证号","金额","分户账号","单位名称"];
+    //先转化json
+    var arrData = typeof JSONData != 'object' ? JSON.parse(JSONData) : JSONData;
+    var excel = '<table>';
+    //设置表头
+    var row = "<tr align='center'>";//设置Excel的左居中
+    for (var i = 0, l = ShowLabel.length; i < l; i++) {
+            row += "<td>" + ShowLabel[i] + '</td>';
+    }
+    //换行
+    excel += row + "</tr>";
+    // console.log(arrData);
+    // return true;
+    //设置数据
+    for (var i = 0; i < arrData.length; i++) {
+        var rowData = "<tr align='left'>";
+
+        for (var y = 0; y < ShowLabel.length; y++) {
+                    rowData += "<td style='vnd.ms-excel.numberformat:@'>" + (arrData[i]['借贷标志']===null? "" : arrData[i]['借贷标志']) + "</td>";
+                    //vnd.ms-excel.numberformat:@ 输出为文本
+        }
+        excel += rowData + "</tr>";
+    }
+    console.log(excel);
+    excel += "</table>";
+    var excelFile = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'>";
+    excelFile += '<meta http-equiv="content-type" content="application/vnd.ms-excel; charset=UTF-8">';
+    excelFile += '<meta http-equiv="content-type" content="application/vnd.ms-excel';
+    excelFile += '; charset=UTF-8">';
+    excelFile += "<head>";
+    excelFile += "<!--[if gte mso 9]>";
+    excelFile += "<xml>";
+    excelFile += "<x:ExcelWorkbook>";
+    excelFile += "<x:ExcelWorksheets>";
+    excelFile += "<x:ExcelWorksheet>";
+    excelFile += "<x:Name>";
+    excelFile += "{worksheet}";
+    excelFile += "</x:Name>";
+    excelFile += "<x:WorksheetOptions>";
+    excelFile += "<x:DisplayGridlines/>";
+    excelFile += "</x:WorksheetOptions>";
+    excelFile += "</x:ExcelWorksheet>";
+    excelFile += "</x:ExcelWorksheets>";
+    excelFile += "</x:ExcelWorkbook>";
+    excelFile += "</xml>";
+    excelFile += "<![endif]-->";
+    excelFile += "</head>";
+    excelFile += "<body>";
+    excelFile += excel;
+    excelFile += "</body>";
+    excelFile += "</html>";
+    var uri = 'data:application/vnd.ms-excel;charset=utf-8,' + encodeURIComponent(excelFile);
+    var link = document.createElement("a");
+    link.href = uri;
+    link.style = "visibility:hidden";
+    link.download = FileName + ".xls";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+		</script>
+	</head>
+
+	<body>
+		<input type="file" id="upload_excel">
+		<div id="content"></div>
+	</body>
+
+</html>
